@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boussole de Granit</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #1a1a1a; color: white; padding: 20px; }
+        button { background: #4CAF50; border: none; color: white; padding: 15px 32px; font-size: 16px; border-radius: 10px; cursor: pointer; margin: 10px; }
+        button:disabled { background: #555; }
+        #status { margin-top: 20px; font-weight: bold; }
+        .info { color: #aaa; font-size: 0.9em; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>Boussole de Granit</h1>
+    <p>Calibrage de la direction de Paris</p>
+
+    <button id="connectBtn">1. Connecter la boussole</button>
+    
+    <div id="status">Statut : Déconnecté</div>
+    <div id="directionInfo" class="info"></div>
+
+    <script>
+        // UUIDs de votre code ESP32
+        const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+        const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+
+        // Coordonnées de Paris
+        const PARIS_LAT = 48.8566;
+        const PARIS_LON = 2.3522;
+
+        let device, characteristic;
+
+        const connectBtn = document.getElementById('connectBtn');
+        const statusDiv = document.getElementById('status');
+        const infoDiv = document.getElementById('directionInfo');
+
+        // Fonction pour calculer l'angle (azimut) entre deux points GPS
+        function calculateBearing(lat1, lon1, lat2, lon2) {
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+            const y = Math.sin(Δλ) * Math.cos(φ2);
+            const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+            let bearing = Math.atan2(y, x) * 180 / Math.PI;
+            return (bearing + 360) % 360; // Normaliser à 0-360°
+        }
+
+        connectBtn.addEventListener('click', async () => {
+            try {
+                statusDiv.innerText = "Recherche de la boussole...";
+                
+                // 1. Connexion Bluetooth
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'Boussole_Granit' }],
+                    optionalServices: [SERVICE_UUID]
+                });
+
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(SERVICE_UUID);
+                characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+
+                statusDiv.innerText = "Connecté ! Récupération du GPS...";
+                statusDiv.style.color = "#4CAF50";
+
+                // 2. Récupération de la position GPS
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+
+                    // 3. Calcul de l'angle vers Paris
+                    const azimuth = Math.round(calculateBearing(userLat, userLon, PARIS_LAT, PARIS_LON));
+                    
+                    infoDiv.innerHTML = `Votre position : ${userLat.toFixed(2)}, ${userLon.toFixed(2)}<br>Azimut vers Paris : ${azimuth}°`;
+
+                    // 4. Envoi de l'angle à l'ESP32
+                    const data = new TextEncoder().encode(azimuth.toString());
+                    await characteristic.writeValue(data);
+                    
+                    statusDiv.innerText = "Angle envoyé avec succès !";
+                }, (err) => {
+                    statusDiv.innerText = "Erreur GPS : " + err.message;
+                });
+
+            } catch (error) {
+                statusDiv.innerText = "Erreur : " + error;
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>
