@@ -1,60 +1,106 @@
-let stableCount = 0;
-let lastHeading = 0;
-let filteredHeading = 0;
-const ALPHA = 0.15; // Facteur de lissage (plus c'est bas, plus c'est stable/lent)
-
-function startInstrument() {
-    // 1. Demander la haute précision GPS
-    navigator.geolocation.watchPosition(pos => {
-        targetBearing = calcBearing(pos.coords.latitude, pos.coords.longitude, PARIS.lat, PARIS.lon);
-        document.getElementById('dist-val').innerText = Math.round(calcDist(pos.coords.latitude, pos.coords.longitude, PARIS.lat, PARIS.lon)) + " KM";
-    }, null, { enableHighAccuracy: true });
-
-    // 2. Gestion de la boussole ABSOLUE
-    const handleOrientation = (e) => {
-        let heading = e.webkitCompassHeading || (360 - e.alpha);
-        if (!heading) return;
-
-        // --- FILTRE EMA (Lissage extrême) ---
-        if (filteredHeading === 0) filteredHeading = heading;
-        
-        // Gestion du passage 359° -> 0° pour le filtre
-        let diff = heading - filteredHeading;
-        if (diff > 180) diff -= 360;
-        if (diff < -180) diff += 360;
-        filteredHeading = (filteredHeading + ALPHA * diff + 360) % 360;
-
-        // --- CHECK DE STABILITÉ ---
-        // Si l'angle bouge de moins de 1° par rapport à la dernière mesure
-        if (Math.abs(heading - lastHeading) < 1.0) {
-            stableCount++;
-        } else {
-            stableCount = 0;
-        }
-        lastHeading = heading;
-
-        // On ne permet la validation que si c'est stable (env. 2-3 secondes)
-        const btn = document.getElementById('main-btn');
-        if (stableCount > 40) { // Environ 2 secondes à 20Hz
-            btn.disabled = false;
-            btn.style.opacity = "1";
-            document.getElementById('status').innerText = "MESURE STABLE - PRÊT";
-            document.getElementById('status').style.color = "var(--gold)";
-        } else {
-            btn.disabled = true;
-            btn.style.opacity = "0.3";
-            document.getElementById('status').innerText = "STABILISATION EN COURS...";
-            document.getElementById('status').style.color = "#5a5f5f";
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Paris | Zinc & Granit</title>
+    <style>
+        :root {
+            --bg-granit: #1a1a1c;
+            --zinc-metal: #8e9494;
+            --zinc-dark: #3a3f3f;
+            --active-glow: rgba(255, 255, 255, 0.85);
+            --gold: #d4af37;
         }
 
-        let visualAngle = (targetBearing - filteredHeading + 180) % 360;
-        document.getElementById('needle-wrapper').style.transform = `rotate(${visualAngle}deg)`;
-        document.getElementById('angle-val').innerText = Math.round(targetBearing) + "°";
-    };
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; outline: none; }
 
-    if ('ondeviceorientationabsolute' in window) {
-        window.addEventListener('deviceorientationabsolute', handleOrientation);
-    } else {
-        window.addEventListener('deviceorientation', handleOrientation);
-    }
-}
+        body {
+            background-color: var(--bg-granit);
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            color: #fff; font-family: -apple-system, sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; overflow: hidden;
+        }
+
+        .instrument {
+            position: relative; width: 320px; height: 320px; border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #2a2a2c, #121214);
+            box-shadow: 20px 20px 40px #0a0a0b, -10px -10px 20px #2a2a2c;
+            border: 8px solid #1e1e20; display: flex; align-items: center; justify-content: center; margin-bottom: 25px;
+        }
+
+        #needle-wrapper { 
+            position: absolute; width: 100%; height: 100%; z-index: 10; 
+            transition: transform 0.1s linear;
+        }
+
+        .needle {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%);
+            width: 20px; height: 150px;
+            background: linear-gradient(to top, var(--active-glow), transparent);
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+        }
+
+        .hub {
+            position: relative; z-index: 20; width: 180px; height: 180px; background: #1a1a1c;
+            border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: inset 5px 5px 10px #0d0d0e, inset -5px -5px 10px #27272a; border: 1px solid var(--zinc-dark);
+        }
+
+        #angle-val { font-size: 3rem; font-weight: 200; margin: 0; color: #e0e0e0; }
+        .city { font-size: 0.6rem; letter-spacing: 4px; color: var(--gold); text-transform: uppercase; margin-top: 5px; }
+        #dist-val { font-size: 0.8rem; color: var(--zinc-metal); margin-top: 8px; }
+
+        .controls { width: 85%; max-width: 300px; display: flex; flex-direction: column; gap: 20px; }
+
+        .btn-zinc {
+            padding: 16px; background: linear-gradient(145deg, var(--zinc-metal), #6a6f6f);
+            color: #111; border-radius: 2px; font-weight: 600; letter-spacing: 2px;
+            text-transform: uppercase; border: none; cursor: pointer;
+        }
+
+        .btn-zinc:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        #brightness-ui { display: none; text-align: center; }
+        input[type=range] { width: 100%; margin: 15px 0; accent-color: var(--zinc-metal); }
+
+        #status { font-size: 0.55rem; color: #5a5f5f; text-align: center; text-transform: uppercase; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+
+    <div class="instrument">
+        <div id="needle-wrapper"><div class="needle"></div></div>
+        <div class="hub">
+            <div id="angle-val">--&deg;</div>
+            <div class="city">Paris</div>
+            <div id="dist-val">-- KM</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="main-btn" class="btn-zinc" onclick="connectBLE()">Initialiser</button>
+        <div id="brightness-ui">
+            <input type="range" id="bright-slider" min="10" max="255" value="215" onchange="sendBrightness(this.value)">
+        </div>
+        <div id="status">Connectez l'instrument</div>
+    </div>
+
+<script>
+    const SERVICE_UUID    = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+    const SYNC_CHAR_UUID  = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+    const BRIGHT_CHAR_UUID= "d2912b10-2e92-4911-85e8-5800d11f67f0";
+    const PARIS = { lat: 48.8566, lon: 2.3522 };
+
+    let syncChar, brightChar;
+    let targetBearing = 0;
+    let stableCount = 0;
+    let lastHeading = 0;
+    let filteredHeading = 0;
+    const ALPHA = 0.12;
+
+    async function connectBLE() {
+        try {
+            const device = await navigator.bluetooth.requestDevice({
+                filters: [{
