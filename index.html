@@ -78,11 +78,14 @@
             targetBearing = calcBearing(pos.coords.latitude, pos.coords.longitude, 48.8566, 2.3522);
             document.getElementById('angle-val').innerText = Math.round(targetBearing) + "°";
             
+            
             window.addEventListener('deviceorientationabsolute', (e) => {
-                let heading = e.webkitCompassHeading || (360 - e.alpha);
-                let visualAngle = targetBearing - heading;
-                document.getElementById('needle-wrapper').style.transform = `rotate(${visualAngle}deg)`;
-            });
+    let heading = e.webkitCompassHeading || (360 - e.alpha);
+    let visualAngle = (targetBearing - heading + 180) % 360; 
+    
+    document.getElementById('needle-wrapper').style.transform = `rotate(${visualAngle}deg)`;
+});
+
 
             document.getElementById('main-btn').innerText = "Valider l'Axe";
             document.getElementById('main-btn').onclick = validate;
