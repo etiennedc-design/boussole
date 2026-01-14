@@ -103,4 +103,91 @@
     async function connectBLE() {
         try {
             const device = await navigator.bluetooth.requestDevice({
-                filters: [{
+                filters: [{ name: 'Boussole_Granit' }],
+                optionalServices: [SERVICE_UUID]
+            });
+            const server = await device.gatt.connect();
+            const service = await server.getPrimaryService(SERVICE_UUID);
+            syncChar = await service.getCharacteristic(SYNC_CHAR_UUID);
+            brightChar = await service.getCharacteristic(BRIGHT_CHAR_UUID);
+            document.getElementById('brightness-ui').style.display = 'block';
+            startInstrument();
+        } catch (e) { document.getElementById('status').innerText = "ERREUR CONNEXION"; }
+    }
+
+    function startInstrument() {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission();
+        }
+
+        navigator.geolocation.watchPosition(pos => {
+            targetBearing = calcBearing(pos.coords.latitude, pos.coords.longitude, PARIS.lat, PARIS.lon);
+            document.getElementById('dist-val').innerText = Math.round(calcDist(pos.coords.latitude, pos.coords.longitude, PARIS.lat, PARIS.lon)) + " KM";
+        }, null, { enableHighAccuracy: true });
+
+        const handleOrientation = (e) => {
+            let heading = e.webkitCompassHeading || (360 - e.alpha);
+            if (!heading) return;
+
+            // Filtre EMA
+            if (filteredHeading === 0) filteredHeading = heading;
+            let diff = heading - filteredHeading;
+            if (diff > 180) diff -= 360;
+            if (diff < -180) diff += 360;
+            filteredHeading = (filteredHeading + ALPHA * diff + 360) % 360;
+
+            // Logique de stabilité
+            if (Math.abs(heading - lastHeading) < 0.8) stableCount++;
+            else stableCount = 0;
+            lastHeading = heading;
+
+            const btn = document.getElementById('main-btn');
+            const status = document.getElementById('status');
+
+            if (stableCount >= 40) {
+                btn.disabled = false;
+                status.innerText = "SENS DE PARIS VERROUILLÉ";
+                status.style.color = "var(--gold)";
+            } else {
+                btn.disabled = true;
+                status.innerText = "STABILISATION EN COURS...";
+                status.style.color = "#5a5f5f";
+            }
+
+            let visualAngle = (targetBearing - filteredHeading + 180) % 360;
+            document.getElementById('needle-wrapper').style.transform = `rotate(${visualAngle}deg)`;
+            document.getElementById('angle-val').innerText = Math.round(targetBearing) + "°";
+        };
+
+        window.addEventListener('deviceorientationabsolute', handleOrientation);
+    }
+
+    async function validate() {
+        if (syncChar) {
+            await syncChar.writeValue(new TextEncoder().encode("1"));
+            document.getElementById('status').innerText = "SYNCHRONISÉ";
+            document.getElementById('main-btn').style.display = "none";
+        }
+    }
+
+    async function sendBrightness(val) {
+        if (brightChar) await brightChar.writeValue(new TextEncoder().encode(val.toString()));
+    }
+
+    function calcBearing(la1, lo1, la2, lo2) {
+        const p1 = la1 * Math.PI/180; const p2 = la2 * Math.PI/180;
+        const dL = (lo2 - lo1) * Math.PI/180;
+        const y = Math.sin(dL) * Math.cos(p2);
+        const x = Math.cos(p1)*Math.sin(p2) - Math.sin(p1)*Math.cos(p2)*Math.cos(dL);
+        return (Math.atan2(y, x) * 180/Math.PI + 360) % 360;
+    }
+
+    function calcDist(la1, lo1, la2, lo2) {
+        const R = 6371;
+        const dLat = (la2-la1)*Math.PI/180; const dLon = (lo2-lo1)*Math.PI/180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLon/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+</script>
+</body>
+</html>
