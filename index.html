@@ -5,55 +5,153 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Boussole de Granit</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #1a1a1a; color: white; padding: 20px; }
-        button { background: #4CAF50; border: none; color: white; padding: 15px 32px; font-size: 16px; border-radius: 10px; cursor: pointer; margin: 10px; }
-        button:disabled { background: #555; }
-        #status { margin-top: 20px; font-weight: bold; }
-        .info { color: #aaa; font-size: 0.9em; margin-top: 10px; }
+        :root {
+            --primary: #d4af37; /* Or / Cuivre */
+            --bg: #1a1a1a;
+            --surface: #2d2d2d;
+            --text: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            background: var(--surface);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 85%;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid #3d3d3d;
+        }
+
+        h1 {
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+            color: var(--primary);
+        }
+
+        /* Cadran de la boussole visuelle */
+        .compass-ui {
+            width: 200px;
+            height: 200px;
+            border: 2px solid var(--primary);
+            border-radius: 50%;
+            margin: 2rem auto;
+            position: relative;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .compass-ui::after {
+            content: 'N';
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .needle {
+            position: absolute;
+            width: 4px;
+            height: 80px;
+            background: var(--primary);
+            top: 20px;
+            left: 98px;
+            border-radius: 2px;
+            transform-origin: bottom center;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            background: var(--primary);
+            color: var(--bg);
+        }
+
+        button:disabled {
+            border-color: #555;
+            color: #555;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .coordinates {
+            font-size: 0.7rem;
+            color: #555;
+            margin-top: 1rem;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Boussole de Granit</h1>
-    <p>Calibrage de la direction de Paris</p>
+    <div class="container">
+        <h1>Boussole</h1>
+        
+        <div class="compass-ui" id="compassVisual">
+            <div class="needle"></div>
+        </div>
 
-    <button id="connectBtn">1. Connecter la boussole</button>
-    
-    <div id="status">Statut : Déconnecté</div>
-    <div id="directionInfo" class="info"></div>
+        <button id="connectBtn">Connecter la pierre</button>
+        
+        <div id="status">En attente de connexion...</div>
+        <div id="coords" class="coordinates"></div>
+    </div>
 
     <script>
-        // UUIDs de votre code ESP32
         const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
         const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+        const PARIS = { lat: 48.8566, lon: 2.3522 };
 
-        // Coordonnées de Paris
-        const PARIS_LAT = 48.8566;
-        const PARIS_LON = 2.3522;
+        let characteristic;
 
-        let device, characteristic;
-
-        const connectBtn = document.getElementById('connectBtn');
-        const statusDiv = document.getElementById('status');
-        const infoDiv = document.getElementById('directionInfo');
-
-        // Fonction pour calculer l'angle (azimut) entre deux points GPS
         function calculateBearing(lat1, lon1, lat2, lon2) {
             const φ1 = lat1 * Math.PI / 180;
             const φ2 = lat2 * Math.PI / 180;
             const Δλ = (lon2 - lon1) * Math.PI / 180;
             const y = Math.sin(Δλ) * Math.cos(φ2);
             const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-            let bearing = Math.atan2(y, x) * 180 / Math.PI;
-            return (bearing + 360) % 360; // Normaliser à 0-360°
+            return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
         }
 
-        connectBtn.addEventListener('click', async () => {
+        document.getElementById('connectBtn').addEventListener('click', async () => {
+            const status = document.getElementById('status');
+            const compass = document.getElementById('compassVisual');
+            
             try {
-                statusDiv.innerText = "Recherche de la boussole...";
-                
-                // 1. Connexion Bluetooth
-                device = await navigator.bluetooth.requestDevice({
+                status.innerText = "Recherche de la boussole...";
+                const device = await navigator.bluetooth.requestDevice({
                     filters: [{ name: 'Boussole_Granit' }],
                     optionalServices: [SERVICE_UUID]
                 });
@@ -62,31 +160,27 @@
                 const service = await server.getPrimaryService(SERVICE_UUID);
                 characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
 
-                statusDiv.innerText = "Connecté ! Récupération du GPS...";
-                statusDiv.style.color = "#4CAF50";
+                status.innerText = "Liaison établie. Calcul de l'azimut...";
 
-                // 2. Récupération de la position GPS
-                navigator.geolocation.getCurrentPosition(async (position) => {
-                    const userLat = position.coords.latitude;
-                    const userLon = position.coords.longitude;
-
-                    // 3. Calcul de l'angle vers Paris
-                    const azimuth = Math.round(calculateBearing(userLat, userLon, PARIS_LAT, PARIS_LON));
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    const azimuth = Math.round(calculateBearing(pos.coords.latitude, pos.coords.longitude, PARIS.lat, PARIS.lon));
                     
-                    infoDiv.innerHTML = `Votre position : ${userLat.toFixed(2)}, ${userLon.toFixed(2)}<br>Azimut vers Paris : ${azimuth}°`;
-
-                    // 4. Envoi de l'angle à l'ESP32
+                    // Animation de la boussole sur l'écran
+                    compass.style.transform = `rotate(${-azimuth}deg)`;
+                    
+                    document.getElementById('coords').innerText = `LAT: ${pos.coords.latitude.toFixed(4)} / LON: ${pos.coords.longitude.toFixed(4)}`;
+                    
+                    // Envoi à l'ESP32
                     const data = new TextEncoder().encode(azimuth.toString());
                     await characteristic.writeValue(data);
                     
-                    statusDiv.innerText = "Angle envoyé avec succès !";
-                }, (err) => {
-                    statusDiv.innerText = "Erreur GPS : " + err.message;
+                    status.innerText = `Paris est à ${azimuth}°. Lampe synchronisée.`;
+                    status.style.color = "#d4af37";
                 });
 
-            } catch (error) {
-                statusDiv.innerText = "Erreur : " + error;
-                console.error(error);
+            } catch (err) {
+                status.innerText = "Erreur : " + err;
+                console.error(err);
             }
         });
     </script>
