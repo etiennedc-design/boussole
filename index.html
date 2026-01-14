@@ -5,71 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Paris | Zinc & Granit</title>
     <style>
-        :root {
-            --bg-granit: #1a1a1c;
-            --zinc-metal: #8e9494;
-            --zinc-dark: #3a3f3f;
-            --active-glow: rgba(255, 255, 255, 0.85);
-            --gold: #d4af37;
-        }
-
-        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; outline: none; }
-
-        body {
-            background-color: var(--bg-granit);
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
-            color: #fff; font-family: -apple-system, sans-serif;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100vh; margin: 0; overflow: hidden;
-        }
-
-        .instrument {
-            position: relative; width: 320px; height: 320px; border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, #2a2a2c, #121214);
-            box-shadow: 20px 20px 40px #0a0a0b, -10px -10px 20px #2a2a2c;
-            border: 8px solid #1e1e20; display: flex; align-items: center; justify-content: center; margin-bottom: 25px;
-        }
-
-        #needle-wrapper { 
-            position: absolute; width: 100%; height: 100%; z-index: 10; 
-            transition: transform 0.1s linear;
-        }
-
-        .needle {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%);
-            width: 20px; height: 150px;
-            background: linear-gradient(to top, var(--active-glow), transparent);
-            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-        }
-
-        .hub {
-            position: relative; z-index: 20; width: 180px; height: 180px; background: #1a1a1c;
-            border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;
-            box-shadow: inset 5px 5px 10px #0d0d0e, inset -5px -5px 10px #27272a; border: 1px solid var(--zinc-dark);
-        }
-
-        #angle-val { font-size: 3rem; font-weight: 200; margin: 0; color: #e0e0e0; }
-        .city { font-size: 0.6rem; letter-spacing: 4px; color: var(--gold); text-transform: uppercase; margin-top: 5px; }
-        #dist-val { font-size: 0.8rem; color: var(--zinc-metal); margin-top: 8px; }
-
-        .controls { width: 85%; max-width: 300px; display: flex; flex-direction: column; gap: 20px; }
-
-        .btn-zinc {
-            padding: 16px; background: linear-gradient(145deg, var(--zinc-metal), #6a6f6f);
-            color: #111; border-radius: 2px; font-weight: 600; letter-spacing: 2px;
-            text-transform: uppercase; border: none; cursor: pointer;
-        }
-
-        .btn-zinc:disabled { opacity: 0.3; cursor: not-allowed; }
-
-        #brightness-ui { display: none; text-align: center; }
-        input[type=range] { width: 100%; margin: 15px 0; accent-color: var(--zinc-metal); }
-
-        #status { font-size: 0.55rem; color: #5a5f5f; text-align: center; text-transform: uppercase; letter-spacing: 1px; }
+        :root { --bg-granit: #1a1a1c; --zinc-metal: #8e9494; --gold: #d4af37; }
+        body { background: var(--bg-granit); color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .instrument { position: relative; width: 300px; height: 300px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #2a2a2c, #121214); border: 8px solid #1e1e20; display: flex; align-items: center; justify-content: center; margin-bottom: 25px; }
+        #needle-wrapper { position: absolute; width: 100%; height: 100%; z-index: 10; transition: transform 0.1s linear; }
+        .needle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); width: 20px; height: 140px; background: linear-gradient(to top, #fff, transparent); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+        .hub { position: relative; z-index: 20; width: 170px; height: 170px; background: #1a1a1c; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #3a3f3f; }
+        #angle-val { font-size: 3rem; font-weight: 200; margin: 0; }
+        .city { font-size: 0.6rem; letter-spacing: 4px; color: var(--gold); text-transform: uppercase; }
+        #dist-val { font-size: 0.8rem; color: var(--zinc-metal); margin-top: 5px; }
+        .btn-zinc { padding: 15px 30px; background: var(--zinc-metal); color: #111; font-weight: 600; text-transform: uppercase; border: none; cursor: pointer; }
+        #status { font-size: 0.6rem; color: #5a5f5f; margin-top: 15px; }
     </style>
 </head>
 <body>
-
     <div class="instrument">
         <div id="needle-wrapper"><div class="needle"></div></div>
         <div class="hub">
@@ -78,105 +27,58 @@
             <div id="dist-val">-- KM</div>
         </div>
     </div>
-
-    <div class="controls">
-        <button id="main-btn" class="btn-zinc" onclick="connectBLE()">Initialiser</button>
-        <div id="brightness-ui">
-            <input type="range" id="bright-slider" min="10" max="255" value="215" onchange="sendBrightness(this.value)">
-        </div>
-        <div id="status">Connectez l'instrument</div>
-    </div>
+    <button id="main-btn" class="btn-zinc" onclick="connectBLE()">Initialiser</button>
+    <div id="status">EN ATTENTE</div>
 
 <script>
-    const SERVICE_UUID    = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-    const SYNC_CHAR_UUID  = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
-    const BRIGHT_CHAR_UUID= "d2912b10-2e92-4911-85e8-5800d11f67f0";
-    const PARIS = { lat: 48.8566, lon: 2.3522 };
-
-    let syncChar, brightChar;
-    let targetBearing = 0;
-    let stableCount = 0;
-    let lastHeading = 0;
-    let filteredHeading = 0;
-    const ALPHA = 0.12;
+    const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+    const SYNC_CHAR_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+    let syncChar, targetBearing = 0, filteredHeading = 0;
+    const ALPHA = 0.15;
 
     async function connectBLE() {
         try {
             const device = await navigator.bluetooth.requestDevice({
-                filters: [{ name: 'Boussole_Granit' }],
-                optionalServices: [SERVICE_UUID]
+                filters: [{ name: 'Boussole_Granit' }], optionalServices: [SERVICE_UUID]
             });
             const server = await device.gatt.connect();
             const service = await server.getPrimaryService(SERVICE_UUID);
             syncChar = await service.getCharacteristic(SYNC_CHAR_UUID);
-            brightChar = await service.getCharacteristic(BRIGHT_CHAR_UUID);
-            document.getElementById('brightness-ui').style.display = 'block';
-            startInstrument();
-        } catch (e) { document.getElementById('status').innerText = "ERREUR CONNEXION"; }
+            
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                await DeviceOrientationEvent.requestPermission();
+            }
+            startSensors();
+        } catch (e) { alert("Erreur Bluetooth"); }
     }
 
-    function startInstrument() {
-        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-            DeviceOrientationEvent.requestPermission();
-        }
-
+    function startSensors() {
         navigator.geolocation.watchPosition(pos => {
-            targetBearing = calcBearing(pos.coords.latitude, pos.coords.longitude, PARIS.lat, PARIS.lon);
-            document.getElementById('dist-val').innerText = Math.round(calcDist(pos.coords.latitude, pos.coords.longitude, PARIS.lat, PARIS.lon)) + " KM";
+            targetBearing = calcBearing(pos.coords.latitude, pos.coords.longitude, 48.8566, 2.3522);
+            document.getElementById('dist-val').innerText = Math.round(calcDist(pos.coords.latitude, pos.coords.longitude, 48.8566, 2.3522)) + " KM";
+            document.getElementById('angle-val').innerText = Math.round(targetBearing) + "°";
         }, null, { enableHighAccuracy: true });
 
-        const handleOrientation = (e) => {
+        window.addEventListener('deviceorientationabsolute', (e) => {
             let heading = e.webkitCompassHeading || (360 - e.alpha);
             if (!heading) return;
-
-            // Filtre EMA
-            if (filteredHeading === 0) filteredHeading = heading;
+            
             let diff = heading - filteredHeading;
             if (diff > 180) diff -= 360;
             if (diff < -180) diff += 360;
             filteredHeading = (filteredHeading + ALPHA * diff + 360) % 360;
 
-            // Logique de stabilité
-            if (Math.abs(heading - lastHeading) < 0.8) stableCount++;
-            else stableCount = 0;
-            lastHeading = heading;
-
-            const btn = document.getElementById('main-btn');
-            const status = document.getElementById('status');
-
-            if (stableCount >= 40) {
-                btn.disabled = false;
-                status.innerText = "SENS DE PARIS VERROUILLÉ";
-                status.style.color = "var(--gold)";
-            } else {
-                btn.disabled = true;
-                status.innerText = "STABILISATION EN COURS...";
-                status.style.color = "#5a5f5f";
-            }
-
-            let visualAngle = (targetBearing - filteredHeading + 180) % 360;
+            // AUCUN OFFSET ICI : L'aiguille pointe vers le vrai Paris
+            let visualAngle = (targetBearing - filteredHeading) % 360;
             document.getElementById('needle-wrapper').style.transform = `rotate(${visualAngle}deg)`;
-            document.getElementById('angle-val').innerText = Math.round(targetBearing) + "°";
-        };
+        });
 
-        window.addEventListener('deviceorientationabsolute', handleOrientation);
-    }
-
-    async function validate() {
-        if (syncChar) {
-            await syncChar.writeValue(new TextEncoder().encode("1"));
-            document.getElementById('status').innerText = "SYNCHRONISÉ";
-            document.getElementById('main-btn').style.display = "none";
-        }
-    }
-
-    async function sendBrightness(val) {
-        if (brightChar) await brightChar.writeValue(new TextEncoder().encode(val.toString()));
+        document.getElementById('main-btn').innerText = "Valider l'Axe";
+        document.getElementById('main-btn').onclick = () => syncChar.writeValue(new TextEncoder().encode("1"));
     }
 
     function calcBearing(la1, lo1, la2, lo2) {
-        const p1 = la1 * Math.PI/180; const p2 = la2 * Math.PI/180;
-        const dL = (lo2 - lo1) * Math.PI/180;
+        const p1 = la1 * Math.PI/180, p2 = la2 * Math.PI/180, dL = (lo2 - lo1) * Math.PI/180;
         const y = Math.sin(dL) * Math.cos(p2);
         const x = Math.cos(p1)*Math.sin(p2) - Math.sin(p1)*Math.cos(p2)*Math.cos(dL);
         return (Math.atan2(y, x) * 180/Math.PI + 360) % 360;
@@ -184,7 +86,7 @@
 
     function calcDist(la1, lo1, la2, lo2) {
         const R = 6371;
-        const dLat = (la2-la1)*Math.PI/180; const dLon = (lo2-lo1)*Math.PI/180;
+        const dLat = (la2-la1)*Math.PI/180, dLon = (lo2-lo1)*Math.PI/180;
         const a = Math.sin(dLat/2)**2 + Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLon/2)**2;
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
