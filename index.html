@@ -12,166 +12,99 @@
             --active-glow: rgba(255, 255, 255, 0.85);
             --gold: #d4af37;
         }
-
-        /* --- DESIGN VISUEL ORIGINAL --- */
         * { -webkit-tap-highlight-color: transparent; user-select: none; box-sizing: border-box; }
-
         body {
             background-color: var(--bg-granit);
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
-            color: #fff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
+            color: #fff; font-family: sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; overflow: hidden;
         }
-
-        .screen { display: none; flex-direction: column; align-items: center; justify-content: center; width: 100%; height: 100%; }
-        .active { display: flex; }
-
-        /* Bouton Style Zinc Brossé */
-        .btn-zinc {
-            padding: 18px 36px;
-            background: linear-gradient(145deg, var(--zinc-metal), #6a6f6f);
-            color: #111;
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 2px;
-            font-weight: 600;
-            letter-spacing: 2px;
-            cursor: pointer;
-            text-transform: uppercase;
-            box-shadow: 5px 5px 15px rgba(0,0,0,0.4);
-            margin: 10px;
-        }
-
-        /* L'Instrument (Ton design original) */
         .instrument {
-            position: relative;
-            width: 340px;
-            height: 340px;
-            border-radius: 50%;
+            position: relative; width: 340px; height: 340px; border-radius: 50%;
             background: radial-gradient(circle at 30% 30%, #2a2a2c, #121214);
             box-shadow: 25px 25px 50px #0a0a0b, -12px -12px 30px #2a2a2c;
-            border: 8px solid #1e1e20;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            border: 8px solid #1e1e20; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;
         }
-
-        #needle-wrapper {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-            transition: transform 1.5s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-
-        .needle {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -100%);
-            width: 22px;
-            height: 160px;
-            background: linear-gradient(to top, var(--active-glow), transparent);
-            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-            filter: blur(0.5px);
-        }
-
-        .hub {
-            position: relative;
-            z-index: 20;
-            width: 190px;
-            height: 190px;
-            background: #1a1a1c;
-            border-radius: 50%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            box-shadow: inset 6px 6px 12px #0d0d0e, inset -6px -6px 12px #27272a;
-            border: 1px solid var(--zinc-dark);
-        }
-
-        #angle-val { font-size: 3.8rem; font-weight: 200; color: #e0e0e0; }
-        .deg { font-size: 1.4rem; color: var(--zinc-metal); }
+        #needle-wrapper { position: absolute; width: 100%; height: 100%; z-index: 10; }
+        .needle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); width: 22px; height: 160px; background: linear-gradient(to top, var(--active-glow), transparent); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); filter: blur(0.5px); }
+        .hub { position: relative; z-index: 20; width: 190px; height: 190px; background: #1a1a1c; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 6px 6px 12px #0d0d0e, inset -6px -6px 12px #27272a; border: 1px solid var(--zinc-dark); }
+        #angle-val { font-size: 3.8rem; font-weight: 200; }
         .city { font-size: 0.65rem; letter-spacing: 5px; color: var(--gold); text-transform: uppercase; margin-top: 12px; }
-
-        /* Style spécifique pour la page de réglages (Neumorphisme Zinc) */
-        .settings-box {
-            background: var(--bg-granit);
-            padding: 30px;
-            border-radius: 10px;
-            border: 1px solid var(--zinc-dark);
-            text-align: center;
-            box-shadow: 10px 10px 20px #0a0a0b;
-        }
-
-        input {
-            background: #111;
-            border: 1px solid var(--zinc-dark);
-            color: var(--gold);
-            padding: 15px;
-            font-size: 1.5rem;
-            width: 120px;
-            text-align: center;
-            margin: 20px 0;
-            border-radius: 4px;
-        }
+        .btn-zinc { padding: 18px 36px; background: linear-gradient(145deg, var(--zinc-metal), #6a6f6f); color: #111; border-radius: 2px; font-weight: 600; letter-spacing: 2px; cursor: pointer; text-transform: uppercase; box-shadow: 5px 5px 15px rgba(0,0,0,0.4); border: none; margin: 10px; }
+        #status { margin-top: 10px; font-size: 0.6rem; color: #5a5f5f; letter-spacing: 1px; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
-    <div id="view-main" class="screen active">
-        <div class="instrument">
-            <div id="needle-wrapper">
-                <div class="needle"></div>
-            </div>
-            <div class="hub">
-                <div id="angle-val">--<span class="deg">&deg;</span></div>
-                <div class="city">Paris</div>
-                <div id="status" style="font-size: 0.6rem; color: #5a5f5f; margin-top: 10px;">NON SYNCHRONISÉ</div>
-            </div>
+    <div class="instrument">
+        <div id="needle-wrapper"><div class="needle"></div></div>
+        <div class="hub">
+            <div id="angle-val">--&deg;</div>
+            <div class="city">Paris</div>
         </div>
-        <button class="btn-zinc" onclick="showView('view-config')">Calibrer</button>
     </div>
 
-    <div id="view-config" class="screen">
-        <div class="settings-box">
-            <div style="letter-spacing: 3px; font-size: 0.8rem; color: var(--zinc-metal);">OFFSET DE PRÉCISION</div>
-            <input type="number" id="offset" value="0">
-            <div style="font-size: 0.65rem; color: #5a5f5f; margin-bottom: 20px;">Ajustez l'alignement mécanique</div>
-            
-            <button class="btn-zinc" onclick="sendToStone()">Envoyer à la pierre</button>
-            <button class="btn-zinc" style="background: none; color: var(--zinc-metal); border: none; box-shadow: none;" onclick="showView('view-main')">Retour</button>
-        </div>
-    </div>
+    <button id="main-btn" class="btn-zinc" onclick="connectBLE()">Connecter</button>
+    <div id="status">Scannez le tag pour commencer</div>
 
 <script>
-    const PARIS = { lat: 48.8566, lon: 2.3522 };
+    const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+    const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+    let boussoleActive = false;
+    let targetBearing = 0;
+    let bleChar;
 
-    function showView(id) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
+    async function connectBLE() {
+        try {
+            const device = await navigator.bluetooth.requestDevice({
+                filters: [{ name: 'Boussole_Granit' }],
+                optionalServices: [SERVICE_UUID]
+            });
+            const server = await device.gatt.connect();
+            const service = await server.getPrimaryService(SERVICE_UUID);
+            bleChar = await service.getCharacteristic(CHARACTERISTIC_UUID);
+            
+            startCompass();
+        } catch (e) { alert("Erreur : " + e); }
     }
 
-    // Calcul de l'azimut GPS
-    function getBearing(lat1, lon1, lat2, lon2) {
-        const p1 = lat1 * Math.PI/180;
-        const p2 = lat2 * Math.PI/180;
-        const dL = (lon2 - lon1) * Math.PI/180;
+    function startCompass() {
+        if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission();
+        }
+
+        navigator.geolocation.getCurrentPosition(pos => {
+            targetBearing = calcBearing(pos.coords.latitude, pos.coords.longitude, 48.8566, 2.3522);
+            document.getElementById('angle-val').innerText = Math.round(targetBearing) + "°";
+            
+            window.addEventListener('deviceorientationabsolute', (e) => {
+                let heading = e.webkitCompassHeading || (360 - e.alpha);
+                let visualAngle = targetBearing - heading;
+                document.getElementById('needle-wrapper').style.transform = `rotate(${visualAngle}deg)`;
+            });
+
+            document.getElementById('main-btn').innerText = "Valider l'Axe";
+            document.getElementById('main-btn').onclick = validate;
+            document.getElementById('status').innerText = "Alignez la flèche avec l'aiguille laser";
+        });
+    }
+
+    async function validate() {
+        if (bleChar) {
+            await bleChar.writeValue(new TextEncoder().encode("1"));
+            document.getElementById('status').innerText = "PIERRE SYNCHRONISÉE";
+            document.getElementById('main-btn').style.display = "none";
+        }
+    }
+
+    function calcBearing(la1, lo1, la2, lo2) {
+        const p1 = la1 * Math.PI/180; const p2 = la2 * Math.PI/180;
+        const dL = (lo2 - lo1) * Math.PI/180;
         const y = Math.sin(dL) * Math.cos(p2);
         const x = Math.cos(p1)*Math.sin(p2) - Math.sin(p1)*Math.cos(p2)*Math.cos(dL);
         return (Math.atan2(y, x) * 180/Math.PI + 360) % 360;
     }
-
-    async function sendToStone() {
-        const offset = parseInt(document.getElementById('offset').value) || 0;
-        const status = document.getElementById('status');
-
-        navigator.geolocation.getCurrentPosition(async (pos) => {
-            const azimuth = Math.round(getBearing(pos.coords.latitude, pos.coords.longitude, PARIS.lat, PARIS.lon));
-            const finalAngle = (azimuth + offset + 360) % 360;
+</script>
+</body>
+</html>
