@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -13,9 +13,7 @@
       --panel: #1f2023;
       --text: #f1f1f1;
       --muted: #8c8f94;
-      --accent: #ffffff;
       --line: rgba(255,255,255,0.18);
-      --ok: #d9ffd9;
     }
 
     * {
@@ -80,6 +78,11 @@
       cursor: pointer;
     }
 
+    button:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+
     button.secondary {
       background: transparent;
       color: var(--text);
@@ -87,21 +90,26 @@
 
     #mapScreen {
       flex-direction: column;
+      height: 100vh;
     }
 
     #map {
-      flex: 1;
+      height: 66vh;
       width: 100%;
       background: #111;
+      flex: none;
     }
 
     .bottomPanel {
       background: rgba(21,21,23,0.96);
       border-top: 1px solid var(--line);
-      padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+      padding: 12px 16px 18px;
+      padding-bottom: max(18px, env(safe-area-inset-bottom));
       display: flex;
       flex-direction: column;
       gap: 10px;
+      max-height: 34vh;
+      overflow-y: auto;
     }
 
     .small {
@@ -114,6 +122,7 @@
       font-size: 0.86rem;
       color: var(--text);
       font-variant-numeric: tabular-nums;
+      line-height: 1.35;
     }
 
     #compassScreen {
@@ -129,6 +138,8 @@
       position: relative;
       width: 340px;
       height: 340px;
+      max-width: 88vw;
+      max-height: 88vw;
       border-radius: 50%;
       background: radial-gradient(circle at 30% 30%, #2b2b2e, #111113);
       box-shadow:
@@ -166,6 +177,8 @@
       z-index: 2;
       width: 194px;
       height: 194px;
+      max-width: 52vw;
+      max-height: 52vw;
       border-radius: 50%;
       background: #171719;
       display: flex;
@@ -224,16 +237,16 @@
 
   <section id="startScreen" class="screen active">
     <h1>Azimut</h1>
-    <p>Choisissez un lieu. La page indiquera la direction à viser avec la lampe, puis mémorisera cette position dans l’ESP32.</p>
-    <button onclick="start()">Commencer</button>
+    <p>Choose a destination. The app will show you which direction to point the lamp, then save that physical position into the lamp.</p>
+    <button onclick="start()">Start</button>
   </section>
 
   <section id="mapScreen" class="screen">
     <div id="map"></div>
     <div class="bottomPanel">
-      <div class="small">Touchez la carte pour placer le lieu de destination de l’Azimut.</div>
-      <div id="targetInfo" class="coords">Aucun lieu sélectionné</div>
-      <button id="confirmTargetBtn" onclick="confirmTarget()" disabled>Confirmer ce lieu</button>
+      <div class="small">Tap the map to place the Azimut destination.</div>
+      <div id="targetInfo" class="coords">No destination selected</div>
+      <button id="confirmTargetBtn" onclick="confirmTarget()" disabled>Confirm destination</button>
     </div>
   </section>
 
@@ -244,14 +257,14 @@
       </div>
       <div class="hub">
         <div id="bearing">--<span class="deg">°</span></div>
-        <div id="status">En attente</div>
+        <div id="status">Waiting</div>
         <div id="distance">-- km</div>
       </div>
     </div>
 
     <div class="actions">
-      <button onclick="calibrateLamp()">La lampe est alignée — mémoriser</button>
-      <button class="secondary" onclick="backToMap()">Changer de lieu</button>
+      <button onclick="calibrateLamp()">Lamp is aligned — save position</button>
+      <button class="secondary" onclick="backToMap()">Change destination</button>
       <div id="sendStatus"></div>
     </div>
   </section>
@@ -269,25 +282,26 @@
     let map = null;
     let marker = null;
     let smoothRotation = 0;
+    let lastVibrationMs = 0;
 
     function show(id) {
-      document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+      document.querySelectorAll(".screen").forEach(screen => screen.classList.remove("active"));
       document.getElementById(id).classList.add("active");
     }
 
     function start() {
       navigator.geolocation.getCurrentPosition(
-        pos => {
+        position => {
           userPos = {
-            lat: pos.coords.latitude,
-            lon: pos.coords.longitude
+            lat: position.coords.latitude,
+            lon: position.coords.longitude
           };
 
           show("mapScreen");
           initMap();
         },
-        err => {
-          alert("Géolocalisation impossible. Autorise la localisation et vérifie que la page est en HTTPS.");
+        () => {
+          alert("Location unavailable. Please allow location access and make sure this page is served over HTTPS.");
         },
         {
           enableHighAccuracy: true,
@@ -320,10 +334,10 @@
         fillOpacity: 0.7
       }).addTo(map);
 
-      map.on("click", e => {
+      map.on("click", event => {
         targetPos = {
-          lat: e.latlng.lat,
-          lon: e.latlng.lng
+          lat: event.latlng.lat,
+          lon: event.latlng.lng
         };
 
         if (marker) marker.remove();
@@ -334,7 +348,7 @@
         targetDistance = calcDistance(userPos.lat, userPos.lon, targetPos.lat, targetPos.lon);
 
         document.getElementById("targetInfo").innerText =
-          `Cible : ${targetPos.lat.toFixed(5)}, ${targetPos.lon.toFixed(5)} · ${Math.round(targetDistance)} km · ${Math.round(targetBearing)}°`;
+          `Destination: ${targetPos.lat.toFixed(5)}, ${targetPos.lon.toFixed(5)} · ${Math.round(targetDistance).toLocaleString("en-US")} km · ${Math.round(targetBearing)}°`;
 
         document.getElementById("confirmTargetBtn").disabled = false;
       });
@@ -347,13 +361,30 @@
         Math.round(targetBearing) + '<span class="deg">°</span>';
 
       document.getElementById("distance").innerText =
-        Math.round(targetDistance).toLocaleString("fr-FR") + " km";
+        Math.round(targetDistance).toLocaleString("en-US") + " km";
 
-      document.getElementById("status").innerText = "Visez cet axe";
+      document.getElementById("status").innerText = "Point the lamp";
       document.getElementById("sendStatus").innerText = "";
 
       show("compassScreen");
 
+      if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
+        DeviceOrientationEvent.requestPermission()
+          .then(response => {
+            if (response === "granted") startCompassListeners();
+            else document.getElementById("status").innerText = "Motion access denied";
+          })
+          .catch(() => {
+            document.getElementById("status").innerText = "Motion access unavailable";
+          });
+      } else {
+        startCompassListeners();
+      }
+    }
+
+    function startCompassListeners() {
+      window.removeEventListener("deviceorientationabsolute", updateCompass, true);
+      window.removeEventListener("deviceorientation", updateCompass, true);
       window.addEventListener("deviceorientationabsolute", updateCompass, true);
       window.addEventListener("deviceorientation", updateCompass, true);
     }
@@ -363,37 +394,42 @@
       setTimeout(() => map.invalidateSize(), 200);
     }
 
-    function updateCompass(e) {
+    function updateCompass(event) {
       let heading = null;
 
-      if (typeof e.webkitCompassHeading === "number") {
-        heading = e.webkitCompassHeading;
-      } else if (typeof e.alpha === "number") {
-        heading = 360 - e.alpha;
+      if (typeof event.webkitCompassHeading === "number") {
+        heading = event.webkitCompassHeading;
+      } else if (typeof event.alpha === "number") {
+        heading = 360 - event.alpha;
       }
 
       if (heading === null) return;
 
       const desiredRotation = angleDiff(targetBearing, heading);
       const diff = angleDiff(desiredRotation, smoothRotation);
-
       smoothRotation += diff * 0.12;
 
       document.getElementById("needleWrapper").style.transform =
         `rotate(${smoothRotation}deg)`;
 
-      const absDiff = Math.abs(angleDiff(targetBearing, heading));
+      const deltaToTarget = angleDiff(targetBearing, heading);
+      const absDelta = Math.abs(deltaToTarget);
       const needle = document.querySelector(".needle");
+      const now = Date.now();
 
-      if (absDiff <= 3) {
-        document.getElementById("status").innerText = "Axe trouvé";
+      if (absDelta <= 3) {
+        document.getElementById("status").innerText = "Axis found";
         needle.style.filter = "drop-shadow(0 0 22px white)";
-        if (navigator.vibrate) navigator.vibrate(30);
-      } else if (angleDiff(targetBearing, heading) > 0) {
-        document.getElementById("status").innerText = "Tourner →";
+
+        if (navigator.vibrate && now - lastVibrationMs > 1200) {
+          navigator.vibrate(30);
+          lastVibrationMs = now;
+        }
+      } else if (deltaToTarget > 0) {
+        document.getElementById("status").innerText = "Turn →";
         needle.style.filter = "blur(0.5px)";
       } else {
-        document.getElementById("status").innerText = "← Tourner";
+        document.getElementById("status").innerText = "← Turn";
         needle.style.filter = "blur(0.5px)";
       }
     }
@@ -402,7 +438,7 @@
       const status = document.getElementById("sendStatus");
 
       status.innerText =
-        "Connecte ton iPhone au Wi-Fi AZIMUT-LAMP, puis relance ce bouton.";
+        "Connect your phone to the AZIMUT-LAMP Wi-Fi network, then press this button again.";
 
       try {
         const response = await fetch(ESP32_URL, {
@@ -410,13 +446,12 @@
           cache: "no-store"
         });
 
-        if (!response.ok) throw new Error("Réponse ESP32 invalide");
+        if (!response.ok) throw new Error("Invalid ESP32 response");
 
-        const text = await response.text();
-        status.innerText = "Position mémorisée dans la lampe.";
-      } catch (err) {
+        status.innerText = "Position saved in the lamp.";
+      } catch (error) {
         status.innerText =
-          "Impossible de joindre la lampe. Vérifie que le téléphone est connecté au Wi-Fi AZIMUT-LAMP.";
+          "Cannot reach the lamp. Make sure your phone is connected to the AZIMUT-LAMP Wi-Fi network.";
       }
     }
 
