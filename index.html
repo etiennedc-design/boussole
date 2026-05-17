@@ -5,12 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Azimut</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
   <style>
     :root {
       --bg: #151517;
-      --panel: #1f2023;
       --text: #f1f1f1;
       --muted: #8c8f94;
       --line: rgba(255,255,255,0.18);
@@ -234,7 +233,6 @@
 </head>
 
 <body>
-
   <section id="startScreen" class="screen active">
     <h1>Azimut</h1>
     <p>Choose a destination. The app will show you which direction to point the lamp, then save that physical position into the lamp.</p>
@@ -272,7 +270,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    const ESP32_URL = "http://192.168.4.1/calibrate";
+    const ESP32_CALIBRATE_URL = "http://192.168.4.1/calibrate";
 
     let userPos = null;
     let targetPos = null;
@@ -434,25 +432,11 @@
       }
     }
 
-    async function calibrateLamp() {
-      const status = document.getElementById("sendStatus");
+    function calibrateLamp() {
+      document.getElementById("sendStatus").innerText =
+        "Opening the lamp calibration page. Make sure your phone is connected to the AZIMUT-LAMP Wi-Fi network.";
 
-      status.innerText =
-        "Connect your phone to the AZIMUT-LAMP Wi-Fi network, then press this button again.";
-
-      try {
-        const response = await fetch(ESP32_URL, {
-          method: "GET",
-          cache: "no-store"
-        });
-
-        if (!response.ok) throw new Error("Invalid ESP32 response");
-
-        status.innerText = "Position saved in the lamp.";
-      } catch (error) {
-        status.innerText =
-          "Cannot reach the lamp. Make sure your phone is connected to the AZIMUT-LAMP Wi-Fi network.";
-      }
+      window.location.href = ESP32_CALIBRATE_URL;
     }
 
     function calcBearing(la1, lo1, la2, lo2) {
