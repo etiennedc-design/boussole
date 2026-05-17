@@ -225,15 +225,6 @@
 
 $1
 
-    .azimut-pin div {
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      border: 1px solid #111;
-      background: rgba(255,255,255,0.85);
-      box-shadow: 0 0 0 4px rgba(255,255,255,0.35), 0 0 22px rgba(0,0,0,0.45);
-    }
-
     .leaflet-container {
       background: #f2f2ef;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -294,7 +285,12 @@ $1
     let map = null;
     let marker = null;
     let smoothRotation = 0;
+    let lastStableHeading = null;
     let lastVibrationMs = 0;
+
+    const HEADING_SMOOTHING = 0.06;
+    const HEADING_DEADZONE_DEG = 1.2;
+    const AXIS_FOUND_DEG = 4;
 
     function show(id) {
       document.querySelectorAll(".screen").forEach(screen => screen.classList.remove("active"));
@@ -354,14 +350,7 @@ $1
 
         if (marker) marker.remove();
 
-        const azimutIcon = L.divIcon({
-          className: "azimut-pin",
-          html: "<div></div>",
-          iconSize: [24, 24],
-          iconAnchor: [12, 12]
-        });
-
-        marker = L.marker([targetPos.lat, targetPos.lon], { icon: azimutIcon }).addTo(map);
+        marker = L.marker([targetPos.lat, targetPos.lon]).addTo(map);
 
         targetBearing = calcBearing(userPos.lat, userPos.lon, targetPos.lat, targetPos.lon);
         targetDistance = calcDistance(userPos.lat, userPos.lon, targetPos.lat, targetPos.lon);
@@ -424,19 +413,32 @@ $1
 
       if (heading === null) return;
 
-      const desiredRotation = angleDiff(targetBearing, heading);
+      if (lastStableHeading === null) {
+        lastStableHeading = heading;
+      }
+
+      const headingMove = angleDiff(heading, lastStableHeading);
+      if (Math.abs(headingMove) > HEADING_DEADZONE_DEG) {
+        lastStableHeading += headingMove * HEADING_SMOOTHING;
+        lastStableHeading = normalizeAngle(lastStableHeading);
+      }
+
+      const desiredRotation = angleDiff(targetBearing, lastStableHeading);
       const diff = angleDiff(desiredRotation, smoothRotation);
-      smoothRotation += diff * 0.12;
+
+      if (Math.abs(diff) > 0.4) {
+        smoothRotation += diff * 0.08;
+      }
 
       document.getElementById("needleWrapper").style.transform =
         `rotate(${smoothRotation}deg)`;
 
-      const deltaToTarget = angleDiff(targetBearing, heading);
+      const deltaToTarget = angleDiff(targetBearing, lastStableHeading);
       const absDelta = Math.abs(deltaToTarget);
       const needle = document.querySelector(".needle");
       const now = Date.now();
 
-      if (absDelta <= 3) {
+      if (absDelta <= AXIS_FOUND_DEG) {
         document.getElementById("status").innerText = "Axis found";
         needle.style.filter = "drop-shadow(0 0 22px white)";
 
@@ -485,6 +487,10 @@ $1
         Math.sin(dLon / 2) ** 2;
 
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function normalizeAngle(angle) {
+      return (angle + 360) % 360;
     }
 
     function angleDiff(a, b) {
