@@ -223,11 +223,25 @@
       gap: 10px;
     }
 
-    #sendStatus {
-      min-height: 20px;
-      color: var(--muted);
-      font-size: 0.82rem;
-      line-height: 1.35;
+$1
+
+    .azimut-pin div {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1px solid #111;
+      background: rgba(255,255,255,0.85);
+      box-shadow: 0 0 0 4px rgba(255,255,255,0.35), 0 0 22px rgba(0,0,0,0.45);
+    }
+
+    .leaflet-container {
+      background: #f2f2ef;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    .leaflet-control-attribution {
+      font-size: 9px;
+      background: rgba(255,255,255,0.72) !important;
     }
   </style>
 </head>
@@ -319,9 +333,9 @@
         zoomControl: false
       }).setView([userPos.lat, userPos.lon], 4);
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 18,
-        attribution: "&copy; OpenStreetMap"
+      L.tileLayer("https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png", {
+        maxZoom: 19,
+        attribution: "&copy; <a href='https://stadiamaps.com/' target='_blank'>Stadia Maps</a> &copy; <a href='https://stamen.com/' target='_blank'>Stamen Design</a> &copy; <a href='https://openmaptiles.org/' target='_blank'>OpenMapTiles</a> &copy; <a href='https://www.openstreetmap.org/copyright' target='_blank'>OpenStreetMap</a>"
       }).addTo(map);
 
       L.circleMarker([userPos.lat, userPos.lon], {
@@ -340,7 +354,14 @@
 
         if (marker) marker.remove();
 
-        marker = L.marker([targetPos.lat, targetPos.lon]).addTo(map);
+        const azimutIcon = L.divIcon({
+          className: "azimut-pin",
+          html: "<div></div>",
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        });
+
+        marker = L.marker([targetPos.lat, targetPos.lon], { icon: azimutIcon }).addTo(map);
 
         targetBearing = calcBearing(userPos.lat, userPos.lon, targetPos.lat, targetPos.lon);
         targetDistance = calcDistance(userPos.lat, userPos.lon, targetPos.lat, targetPos.lon);
